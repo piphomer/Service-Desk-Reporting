@@ -12,10 +12,8 @@ from office365.sharepoint.client_context import ClientContext
 from office365.sharepoint.file_creation_information import FileCreationInformation
 from office365.runtime.utilities.request_options import RequestOptions
 
-
-
-service_desk_list =['CMS','PS','ES']
-service_desk_list =['ES']
+#List of service desks to iterate through
+service_desk_list =['CMS','PS', 'ES']
 
 #Setup Sharepoint
 
