@@ -81,7 +81,12 @@ if __name__ == "__main__":
                 except:
                     created = "-"
 
-                this_list = [issue_key,issuetype,reporter,priority,root_cause,resolution_bf,status,created]
+                try:
+                    assignee = issue.fields.assignee.displayName.encode('utf-8')
+                except:
+                    assignee = "-"
+
+                this_list = [issue_key,issuetype,reporter,assignee,priority,root_cause,resolution_bf,status,created]
 
                 print this_list
 
@@ -89,7 +94,7 @@ if __name__ == "__main__":
             
 
         output_df = pd.DataFrame(output_list)
-        output_df.columns = ["Issue","Issue Type","Reporter","Priority",
+        output_df.columns = ["Issue","Issue Type","Reporter","Assignee","Priority",
                                 "Root Cause","Resolution (BF)","Status","Created"]
         output_df.set_index("Issue", inplace=True)
 

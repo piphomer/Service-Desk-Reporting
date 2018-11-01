@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
 from jira import JIRA
 import csv
 import sys
@@ -7,15 +10,18 @@ from datetime import datetime as dt
 import unicodedata
 from unidecode import unidecode
 
+
 from office365.runtime.auth.authentication_context import AuthenticationContext
 from office365.sharepoint.client_context import ClientContext
 from office365.sharepoint.file_creation_information import FileCreationInformation
 from office365.runtime.utilities.request_options import RequestOptions
 
 #List of service desks to iterate through
-service_desk_list =['CMS','PS', 'ES']
+service_desk_list = ['CMS','PS', 'ES']
 
-#Setup Sharepoint
+#Auth
+jira_username = os.environ['JIRA_USERNAME']
+jira_password = os.environ['JIRA_PASSWORD']
 
 sharepoint_username = os.environ['SHAREPOINT_USERNAME']
 sharepoint_password = os.environ['SHAREPOINT_PASSWORD']
@@ -25,6 +31,8 @@ sharepoint_url = 'https://bboxxeng.sharepoint.com'
 
 
 
+####################################################################################################
+# Set up Sharepoint functions
 ####################################################################################################
 
 class Sharepoint():
@@ -158,7 +166,7 @@ if __name__ == "__main__":
     print run_date
 
     # Connect to BBOXX Jira server
-    jira = JIRA('https://bboxxltd.atlassian.net', basic_auth=('p.homer@bboxx.co.uk', 'S0trwuh#1'))
+    jira = JIRA('https://bboxxltd.atlassian.net', basic_auth=(jira_username, jira_password))
 
     #Create connection to Sharepoint
 
@@ -168,7 +176,10 @@ if __name__ == "__main__":
     
     #Move any files in the Active folder to the Archive folder
   
-    
+    #Coming soon...
+
+
+    #Get the tickets
 
     for desk_id in service_desk_list:
 
@@ -184,7 +195,7 @@ if __name__ == "__main__":
 
         page_qty = tix_count / 100 + 1# Calculate how many pages of tickets there are
 
-        #page_qty = 3
+        #page_qty = 1
 
         print "Total number of tickets: ",tix_count
         print "Number of pages: ", page_qty
@@ -198,7 +209,8 @@ if __name__ == "__main__":
             issue_list = []
             issue_list_debug = []
 
-            print "Page: ", page + 1
+            #print "Page: ", page + 1
+            print "\r" + "Page ", page + 1, " of ", page_qty,
 
             starting_issue = page * 100
 
@@ -207,7 +219,7 @@ if __name__ == "__main__":
             for issue in tix:
                 issue_priority = issue.fields.priority.name
 
-                print issue.key, "..."
+                # print issue.key, "..."
 
                 #time to first response
                 try:
@@ -233,9 +245,9 @@ if __name__ == "__main__":
                                 sla_mins = 1440
                         else:
                             sla_mins = 480
-                        print issue_priority, sla_mins
                         ttfr_mins = sla_mins - issue.raw['fields']['customfield_10806']['completedCycles'][0]['remainingTime']['millis']/1000/60
-                        ttfr_status = issue.raw['fields']['customfield_10806']["completedCycles"][0]["breached"]
+                        ttfr_mins = str(ttfr_mins)
+                        ttfr_status = str(issue.raw['fields']['customfield_10806']["completedCycles"][0]["breached"])
                         ttfr_time = issue.raw['fields']['customfield_10806']["completedCycles"][0]["stopTime"]["jira"]
                     except:
                         #Some SLAs seem to get deleted. If so return "??"
@@ -254,25 +266,34 @@ if __name__ == "__main__":
                     else:
                         sla_mins = 4800
                     try:
-                        #Let's see if there is any remaining time information
+                        #Let's see if there is any remaining time information by trying it (but not using it)
                         ttr = issue.raw['fields']['customfield_10805']["ongoingCycle"]["remainingTime"]["friendly"]
                         #If there was, just say we are awaiting resolution
-                        ttr = "Awaiting resolution"
+                        ttr = "Awaiting resolution" #Just overwrite the value we got through trying
                         ttr_mins = ""
                         ttr_status = "Ongoing"
                     except:
                         try:
                             ttr = issue.raw['fields']['customfield_10805']["completedCycles"][0]["remainingTime"]["friendly"]
-                            ttr_status = issue.raw['fields']['customfield_10805']["completedCycles"][0]["breached"]
+                            ttr_status = str(issue.raw['fields']['customfield_10805']["completedCycles"][0]["breached"])
                             ttr_mins = sla_mins - issue.raw['fields']['customfield_10805']['completedCycles'][0]['remainingTime']['millis']/1000/60
+                            ttr_mins = str(ttr_mins)
                         except: #Go down this branch if there is no TTR information at all (ticket was transferred from PS, for example)
                             ttr = "??"
                             ttr_status = "??"
                             ttr_mins = "??"
-                else:            
-                    ttr = ""
-                    ttr_status = "n/a"
-                    ttr_mins = ""
+                else:
+                    #There is no SLA for TTR on PS desk so the custom field does not get populated with anything useful
+                    #So we will need to just look at the difference between raised date and resolved date            
+                    if issue.fields.resolutiondate != None:
+                        ttr = ""
+                        ttr_status = "n/a"
+                        ttr_mins = dt.strptime(issue.fields.resolutiondate[:16], '%Y-%m-%dT%H:%M') - dt.strptime(issue.fields.created[:16], '%Y-%m-%dT%H:%M')
+                        ttr_mins = str(ttr_mins.seconds/60)
+                    else:    
+                        ttr = ""
+                        ttr_status = ""
+                        ttr_mins = ""
 
                 #organization
                 try:
@@ -292,11 +313,6 @@ if __name__ == "__main__":
                 except:
                     product_type = 'Not specified'
 
-                #Remove any unintelligble characters in the Summary
-                #summary = issue.fields.summary.encode(sys.stdout.encoding, errors='replace')
-                #summary = issue.fields.summary.encode('utf-8', errors='replace')
-
-
                 #Make the dates Excel-readable
                 created = str(issue.fields.created)[:10] + " " + str(issue.fields.created)[11:19]
                 resolved = str(issue.fields.resolutiondate)[:10] + " " + str(issue.fields.resolutiondate)[11:19]
@@ -305,30 +321,43 @@ if __name__ == "__main__":
                     responded = str(ttfr_time)[:10] + " " + str(ttfr_time)[11:19]
                 else:
                     responded = "n/a"
-
-                # print "  |{:^8}|{:^5}|{:^70}|{:^22}|{:^18}|{}|{:^28}|{:^17}|{}|{:^8}|{:^5}|{}|{}|".format(\
-
-                #       issue.key, \
-                #       issue.id,\
-                #       issue.fields.summary, \
-                #       issue.fields.status, \
-                #       issue.fields.issuetype, \
-                #       request_type
-                #       created, \
-                #       resolved,\
-                #       updated
-                #       issue.fields.assignee,\
-                #       issue.fields.resolution,\
-                #       ttfr,\
-                #       ttfr_status,\
-                #       ttr,\
-                #       ttr_status)
                             
+                #Assignee
+                try:
+                    assignee = issue.fields.assignee.displayName
+                except:
+                    assignee = "None"
+
+                #Resolution
+                try:
+                    resolution = issue.fields.resolution.name
+                except:
+                    resolution = "None"
+
+                #Priority
+                try:
+                    priority = issue.fields.priority.name
+                except:
+                    priority = "Unknown"
+
+                #Status
+                try:
+                    status = issue.fields.status.name
+                except:
+                    status = "Unknown"
+
+                #Reporter
+                try:
+                    reporter = issue.fields.reporter.displayName
+                except:
+                    reporter = "Unknown"
+
+
                             
                 issue_list = [
                     issue.key,
                     issue.id,
-                    issue.fields.issuetype,
+                    issue.fields.issuetype.name,
                     ttfr,
                     ttfr_mins,
                     ttfr_status,
@@ -336,21 +365,20 @@ if __name__ == "__main__":
                     ttr,
                     ttr_mins,
                     ttr_status,
-                    issue.fields.priority,
-                    issue.fields.status,
+                    priority,
+                    status,
                     issue.fields.summary,
                     created,
-                    issue.fields.reporter,
-                    issue.fields.assignee,
+                    reporter,
+                    assignee,
                     request_type,
                     product_type,
                     org,
-                    issue.fields.resolution,
+                    resolution,
                     resolved,
                     updated
                 ]
 
-                issue_list_debug = issue_list
 
                 #Encode unicode fields to bytes
                 for i, item in enumerate(issue_list):
@@ -358,28 +386,12 @@ if __name__ == "__main__":
                     if (type(issue_list[i]) != 'str' and type(issue_list[i]) != None):
                     #     issue_list[i] = unicodedata.normalize('NFKD',item).encode('utf-8', errors='replace')
                         try:
-                            issue_list[i] = unidecode(item)
+                            issue_list[i] = issue_list[i].decode('utf-8', errors='replace')
                         except:
                             issue_list[i] = "Unicode decode error... sorry!!"
 
 
-
-                    # try:
-                    #     print type(issue_list[i])
-                    #     issue_list[i] = item.encode('utf-8', errors='replace')
-                    #     print i, " ", item, "Success"
-                    # except:
-                    #     try:
-                    #         print i, " ", item, "Fail"
-                    #     except:
-                    #         issue_list[i] = "Unicode decode error... sorry!!"
-
-
-
                 output_list.append(issue_list)
-                output_list_debug.append(issue_list_debug)
-            
-
 
 
         #Write all metrics to Sharepoint
@@ -415,11 +427,11 @@ if __name__ == "__main__":
             ])
             writer.writerows(output_list)
 
+
             #Write to Sharepoint
+            
+            # file_content = read_file_as_binary(fname)
 
-        
-        file_content = read_file_as_binary(fname)
+            # sp_path = 'teams/Engineering/Reporting/Service%20Desk%20Reporting/'
 
-        sp_path = 'teams/Engineering/Reporting/Service%20Desk%20Reporting/'
-
-        sp.upload_file(file_content=file_content, file_name=fname, path=sp_path)
+            # sp.upload_file(file_content=file_content, file_name=fname, path=sp_path)
