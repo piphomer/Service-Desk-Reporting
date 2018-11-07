@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-#-*- coding: utf-8 -*-
-
 from jira import JIRA
 import csv
 import sys
@@ -11,13 +8,15 @@ import unicodedata
 from unidecode import unidecode
 
 
-from office365.runtime.auth.authentication_context import AuthenticationContext
-from office365.sharepoint.client_context import ClientContext
-from office365.sharepoint.file_creation_information import FileCreationInformation
-from office365.runtime.utilities.request_options import RequestOptions
+
+# from office365.runtime.auth.authentication_context import AuthenticationContext
+# from office365.sharepoint.client_context import ClientContext
+# from office365.sharepoint.file_creation_information import FileCreationInformation
+# from office365.runtime.utilities.request_options import RequestOptions
 
 #List of service desks to iterate through
 service_desk_list = ['CMS','PS', 'ES']
+service_desk_list = ['CMS']
 
 #Auth
 jira_username = os.environ['JIRA_USERNAME']
@@ -35,125 +34,125 @@ sharepoint_url = 'https://bboxxeng.sharepoint.com'
 # Set up Sharepoint functions
 ####################################################################################################
 
-class Sharepoint():
+# class Sharepoint():
 
-    """ Sharepoint Connection """
-    def __init__(self, sharepoint_username, sharepoint_password, sharepoint_url):
-        self.sharepoint_username = sharepoint_username
-        self.sharepoint_password = sharepoint_password
-        self.sharepoint_url = sharepoint_url
+#     """ Sharepoint Connection """
+#     def __init__(self, sharepoint_username, sharepoint_password, sharepoint_url):
+#         self.sharepoint_username = sharepoint_username
+#         self.sharepoint_password = sharepoint_password
+#         self.sharepoint_url = sharepoint_url
 
-    def authorise_sharepoint(self, url=None):
-        if not url:
-            raise Exception("Error","No Sharepoint URL is defined in config.")
-        ctx_auth = AuthenticationContext(url=url)
-        self.sp_url = url
-        if ctx_auth.acquire_token_for_user(username=self.sharepoint_username,
-                                           password=self.sharepoint_password):
-            ctx = ClientContext(url, ctx_auth)
-            return ctx
-        else:
-            print("error in auth")
-        return False
+#     def authorise_sharepoint(self, url=None):
+#         if not url:
+#             raise Exception("Error","No Sharepoint URL is defined in config.")
+#         ctx_auth = AuthenticationContext(url=url)
+#         self.sp_url = url
+#         if ctx_auth.acquire_token_for_user(username=self.sharepoint_username,
+#                                            password=self.sharepoint_password):
+#             ctx = ClientContext(url, ctx_auth)
+#             return ctx
+#         else:
+#             print("error in auth")
+#         return False
 
-    def get_folder_by_server_relative_url(self,path):
-        if path[0] == '/':
-            path = path[1:]
-        if path[-1] == '/':
-            path = path[:-1]
-        folder_paths = path.split('/')
-        url = self.sp_url
-        if not url:
-            raise Exception("Error","No Sharepoint URL is defined in config.")
-        if url[-1] != '/':
-            url += '/'
-        url = url + folder_paths[0] + '/' + folder_paths[1]
-        self.ctx = self.authorise_sharepoint(url)
-        folder_names = path.split('/')
-        list_obj = self.ctx.web.lists.get_by_title(folder_paths[2])
-        folder = list_obj.root_folder
-        if len(folder_names[2:]) > 1:
-             for folder_name in folder_names[3:]:
-                # Get destination sharepoint folder
-                folder = folder.folders.get_by_url(folder_name)
-        return folder
+#     def get_folder_by_server_relative_url(self,path):
+#         if path[0] == '/':
+#             path = path[1:]
+#         if path[-1] == '/':
+#             path = path[:-1]
+#         folder_paths = path.split('/')
+#         url = self.sp_url
+#         if not url:
+#             raise Exception("Error","No Sharepoint URL is defined in config.")
+#         if url[-1] != '/':
+#             url += '/'
+#         url = url + folder_paths[0] + '/' + folder_paths[1]
+#         self.ctx = self.authorise_sharepoint(url)
+#         folder_names = path.split('/')
+#         list_obj = self.ctx.web.lists.get_by_title(folder_paths[2])
+#         folder = list_obj.root_folder
+#         if len(folder_names[2:]) > 1:
+#              for folder_name in folder_names[3:]:
+#                 # Get destination sharepoint folder
+#                 folder = folder.folders.get_by_url(folder_name)
+#         return folder
 
-    def upload_file(self,path,file_content,file_name,overwrite = True):
-        # Find Folder
+#     def upload_file(self,path,file_content,file_name,overwrite = True):
+#         # Find Folder
 
-        folder_object = self.get_folder_by_server_relative_url(path)
+#         folder_object = self.get_folder_by_server_relative_url(path)
 
-        self.ctx.load(folder_object)
-        self.ctx.execute_query()
+#         self.ctx.load(folder_object)
+#         self.ctx.execute_query()
 
-        # Create File Object
-        info = FileCreationInformation()
-        info.url = file_name
-        info.content = file_content
-        info.overwrite = overwrite
+#         # Create File Object
+#         info = FileCreationInformation()
+#         info.url = file_name
+#         info.content = file_content
+#         info.overwrite = overwrite
 
-        full_url = "{0}/Files/add(url='{1}', overwrite=true)".format(folder_object.url, file_name)
-
-
-        options = RequestOptions(full_url)
-        self.ctx.authenticate_request(options)
-        self.ctx.ensure_form_digest(options)
-
-        # Upload File
-
-        # The reason we do this directly is because the
-        # `request.execute_query_direct` call wants to send JSON, but that
-        # doesn't work if you want to upload, eg, an XLSX file (Requests
-        # just falls over trying to decode the contents as text).
-        print('Uploading File "%s" to sharepoint folder "%s" ...' % (info.url, folder_object))
-        print(full_url)
-        response = requests.post(
-            url=full_url, data=file_content, headers=options.headers, auth=options.auth,
-        )
-        if response.status_code not in [200,201]:
-            raise Exception(response.text, response.status_code)
-        print('Done.')
+#         full_url = "{0}/Files/add(url='{1}', overwrite=true)".format(folder_object.url, file_name)
 
 
+#         options = RequestOptions(full_url)
+#         self.ctx.authenticate_request(options)
+#         self.ctx.ensure_form_digest(options)
 
-    def delete_file(self, path):
-        print "Deleting file"
-        split_path = path.rsplit('/', 1)
-        folder_path, filename = split_path[0], split_path[1]
-        folder = self.get_folder_by_server_relative_url(folder_path)
-        self.ctx.load(folder)
-        self.ctx.execute_query()
+#         # Upload File
 
-        files = folder.files
-        self.ctx.load(files)
-        self.ctx.execute_query()
-
-        print files
-
-        for cur_file in files:
-            print cur_file.properties["Name"]
-            if cur_file.properties["Name"] == filename:
-                full_url = "{0}/$value".format(cur_file.url)
-                options = RequestOptions(full_url)
-                self.ctx.authenticate_request(options)
-                self.ctx.ensure_form_digest(options)
-                response = requests.delete(url=cur_file.url, headers=options.headers, auth=options.auth)
-
-                print response.status_code
-
-                if response.status_code == 404:
-                    raise SharepointFileNotFound()
-
-                elif response.status_code != 200:
-                    raise SharepointDeleteFailed()
-
-        return
+#         # The reason we do this directly is because the
+#         # `request.execute_query_direct` call wants to send JSON, but that
+#         # doesn't work if you want to upload, eg, an XLSX file (Requests
+#         # just falls over trying to decode the contents as text).
+#         print(('Uploading File "%s" to sharepoint folder "%s" ...' % (info.url, folder_object)))
+#         print(full_url)
+#         response = requests.post(
+#             url=full_url, data=file_content, headers=options.headers, auth=options.auth,
+#         )
+#         if response.status_code not in [200,201]:
+#             raise Exception(response.text, response.status_code)
+#         print('Done.')
 
 
-def read_file_as_binary(path):
-    with open(path, 'rb') as content_file:
-        file_content = content_file.read()
-    return file_content
+
+#     def delete_file(self, path):
+#         print("Deleting file")
+#         split_path = path.rsplit('/', 1)
+#         folder_path, filename = split_path[0], split_path[1]
+#         folder = self.get_folder_by_server_relative_url(folder_path)
+#         self.ctx.load(folder)
+#         self.ctx.execute_query()
+
+#         files = folder.files
+#         self.ctx.load(files)
+#         self.ctx.execute_query()
+
+#         print(files)
+
+#         for cur_file in files:
+#             print(cur_file.properties["Name"])
+#             if cur_file.properties["Name"] == filename:
+#                 full_url = "{0}/$value".format(cur_file.url)
+#                 options = RequestOptions(full_url)
+#                 self.ctx.authenticate_request(options)
+#                 self.ctx.ensure_form_digest(options)
+#                 response = requests.delete(url=cur_file.url, headers=options.headers, auth=options.auth)
+
+#                 print(response.status_code)
+
+#                 if response.status_code == 404:
+#                     raise SharepointFileNotFound()
+
+#                 elif response.status_code != 200:
+#                     raise SharepointDeleteFailed()
+
+#         return
+
+
+# def read_file_as_binary(path):
+#     with open(path, 'rb') as content_file:
+#         file_content = content_file.read()
+#     return file_content
 
 
 ####################################################################################################
@@ -163,20 +162,70 @@ if __name__ == "__main__":
 
     run_date = dt.strftime(dt.now(), '%y%m%d')
 
-    print run_date
+    print(run_date)
 
     # Connect to BBOXX Jira server
     jira = JIRA('https://bboxxltd.atlassian.net', basic_auth=(jira_username, jira_password))
 
     #Create connection to Sharepoint
 
-    sp = Sharepoint(sharepoint_username,sharepoint_password, sharepoint_url)
+    # sp = Sharepoint(sharepoint_username,sharepoint_password, sharepoint_url)
 
-    sp.authorise_sharepoint(sharepoint_url)
+    # sp.authorise_sharepoint(sharepoint_url)
     
     #Move any files in the Active folder to the Archive folder
   
     #Coming soon...
+
+    #Define the header names of each column
+    header_list = [
+        "Ticket Key",
+        "Ticket ID",
+        "Issue Type",
+        "Time to First Response",
+        "TTFR (Minutes)",
+        "TTFR Breached",
+        "Time of First Response",
+        "Time to Resolution",
+        "TTR (Minutes)",
+        "TTR Breached",
+        "Priority",
+        "Status",
+        "Summary",
+        "Created",
+        "Reporter",
+        "Assignee",
+        "Request Type",
+        "Affected Product",
+        "Organization",
+        "Resolution",
+        "Resolved",
+        "Updated"
+    ]
+
+    #CMS desk gets extra columns so add these in
+    header_list.extend([
+        "Root Cause",
+        "Reason For Breach",
+        "Reason for Breach Comment",
+        "Resolution ()",
+        "Job Type",
+        "Department",
+        "Job Title",
+        "Applications",
+        "CSCC Action",
+        "Report Page",
+        "Linked Issue",
+        "TTFR Orange Breached?",
+        "TTFR Orange Elapsed Time (ms)",
+        "TTFR Orange Remaining Time (ms)",
+        "TTR Orange Breached?",
+        "TTR Orange Elapsed Time (ms)",
+        "TTR Orange Remaining Time (ms)",
+        "Weekly Status",
+        "Last Public Comment Date",
+        "ERP Module"
+        ])
 
 
     #Get the tickets
@@ -185,7 +234,7 @@ if __name__ == "__main__":
 
         search_string = 'project = ' + desk_id
 
-        print search_string
+        print(search_string)
 
         # Retrieve all tickets so we can count them.
         # Note: we can only query 50 at a time so we will need to paginate in a later step
@@ -193,12 +242,12 @@ if __name__ == "__main__":
 
         tix_count = all_tix.total # Count the tickets via the .total attribute
 
-        page_qty = tix_count / 100 + 1# Calculate how many pages of tickets there are
+        page_qty = tix_count // 100 + 1 # Calculate how many pages of tickets there are
 
-        #page_qty = 1
+        #page_qty = 1  # Just run first page for test/debug
 
-        print "Total number of tickets: ",tix_count
-        print "Number of pages: ", page_qty
+        print("Total number of tickets: ",tix_count)
+        print("Number of pages: ", page_qty)
 
         output_list = []
         output_list_debug = []
@@ -209,17 +258,18 @@ if __name__ == "__main__":
             issue_list = []
             issue_list_debug = []
 
-            #print "Page: ", page + 1
-            print "\r" + "Page ", page + 1, " of ", page_qty,
+            print("\r" + "Page ", page + 1, " of ", page_qty, end=' ')
 
             starting_issue = page * 100
 
             tix = jira.search_issues(search_string, startAt = starting_issue, maxResults= 100)
 
             for issue in tix:
-                issue_priority = issue.fields.priority.name
 
-                # print issue.key, "..."
+                #print(issue.key)
+
+                #Issue priority
+                issue_priority = issue.fields.priority.name
 
                 #time to first response
                 try:
@@ -353,7 +403,7 @@ if __name__ == "__main__":
                     reporter = "Unknown"
 
 
-                            
+
                 issue_list = [
                     issue.key,
                     issue.id,
@@ -379,16 +429,129 @@ if __name__ == "__main__":
                     updated
                 ]
 
+                #CMS-only fields
+                if desk_id == "CMS":
+                    try:
+                        root_cause = issue.raw['fields']['customfield_11480'][0]['value']
+                    except:
+                        root_cause = ""
 
-                #Encode unicode fields to bytes
-                for i, item in enumerate(issue_list):
+                    #Reason for breach
+                    try:
+                        reason_for_breach = issue.raw['fields']['customfield_11481'][0]['value']
+                    except:
+                        reason_for_breach = ""                  
+
+                    #Reason for breach comment
+                    try:
+                        reason_for_breach_comment = issue.raw['fields']['customfield_11488'][0]['value']
+                    except:
+                        reason_for_breach_comment = ""
+
+                    #Resolution()
+                    try:
+                        resolution_brackets = issue.raw['fields']['customfield_11447']['value']
+                    except:
+                        resolution_brackets = ""
+
+                    #Job Type
+                    try:
+                        job_type = issue.raw['fields']['customfield_11471']['value']
+                    except:
+                        job_type = ""
+
+                    #Department
+                    try:
+                        department = issue.raw['fields']['customfield_11470']
+                    except:
+                        department = ""
+
+                    #Job Title
+                    try:
+                        job_title = issue.raw['fields']['customfield_11456']
+                    except:
+                        job_title = ""
+
+                    #Applications
+                    try:
+                        applications = issue.raw['fields']['customfield_11454'][0]['value']
+                    except:
+                        applications = ""
+
+                    #CSCC Action
+                    try:
+                        cscc_action = issue.raw['fields']['customfield_11435']['value']
+                    except:
+                        cscc_action = ""
+
+                    #Report Page
+                    try:
+                        report_page = issue.raw['fields']['customfield_11458'][0]['value']
+                    except:
+                        report_page = ""
+
+                    #Linked Issue
+                    try:
+                        linked_issue = issue.raw['fields']['issuelinks'][0]['inwardIssue']['key']
+                        #linked_issue = issue.fields.issuelinks.inwardIssue.key
+                    except:
+                        linked_issue = ""
                     
-                    if (type(issue_list[i]) != 'str' and type(issue_list[i]) != None):
-                    #     issue_list[i] = unicodedata.normalize('NFKD',item).encode('utf-8', errors='replace')
-                        try:
-                            issue_list[i] = issue_list[i].decode('utf-8', errors='replace')
-                        except:
-                            issue_list[i] = "Unicode decode error... sorry!!"
+                    #TTFR Orange
+                    if issue.raw['fields']['customfield_11484'].get('ongoingCycle'):
+                        ttfr_orange_breach = issue.raw['fields']['customfield_11484']['ongoingCycle']['breached']
+                        ttfr_orange_time = issue.raw['fields']['customfield_11484']['ongoingCycle']['elapsedTime']['millis']
+                        ttfr_orange_remaining = issue.raw['fields']['customfield_11484']['ongoingCycle']['remainingTime']['millis']
+                    elif issue.raw['fields']['customfield_11484'].get('completedCycles'):
+                        ttfr_orange_breach = issue.raw['fields']['customfield_11484']['completedCycles'][0]['breached']
+                        ttfr_orange_time = issue.raw['fields']['customfield_11484']['completedCycles'][0]['elapsedTime']['millis']
+                        ttfr_orange_remaining = issue.raw['fields']['customfield_11484']['completedCycles'][0]['remainingTime']['millis']
+                    else:
+                        ttfr_orange_breach = ''
+                        ttfr_orange_time = ''
+                        ttfr_orange_remaining = ''
+                    
+
+                    #TTR Orange
+                    if issue.raw['fields']['customfield_11485'].get('ongoingCycle'):
+                        ttr_orange_breach = issue.raw['fields']['customfield_11485']['ongoingCycle']['breached']
+                        ttr_orange_time = issue.raw['fields']['customfield_11485']['ongoingCycle']['elapsedTime']['millis']
+                        ttr_orange_remaining = issue.raw['fields']['customfield_11485']['ongoingCycle']['remainingTime']['millis']
+                    elif issue.raw['fields']['customfield_11485'].get('completedCycles'):
+                        ttr_orange_breach = issue.raw['fields']['customfield_11485']['completedCycles'][0]['breached']
+                        ttr_orange_time = issue.raw['fields']['customfield_11485']['completedCycles'][0]['elapsedTime']['millis']
+                        ttr_orange_remaining = issue.raw['fields']['customfield_11485']['completedCycles'][0]['remainingTime']['millis']
+                    else:
+                        ttr_orange_breach = ''
+                        ttr_orange_time = ''
+                        ttr_orange_remaining = ''
+
+
+                    #Weekly Status
+                    try:
+                        weekly_status = issue.raw['fields']['customfield_11453']
+                    except:
+                        weekly_status = ""
+
+                    #Last public comment date
+                    try:
+                        last_public_comment_date = issue.raw['fields']['customfield_11444']
+                    except:
+                        last_public_comment_date = ""
+
+                    #ERP Module
+                    try:
+                        erp_module = issue.raw['fields']['customfield_11302']['value']
+                    except:
+                        erp_module = ""
+                    
+                    issue_list_cms = [root_cause, reason_for_breach, reason_for_breach_comment, resolution_brackets,
+                                    job_type, department, job_title, applications, cscc_action, report_page, linked_issue,
+                                    ttfr_orange_breach, ttfr_orange_time, ttfr_orange_remaining,
+                                    ttr_orange_breach, ttr_orange_time, ttr_orange_remaining,
+                                    weekly_status, last_public_comment_date, erp_module]
+
+                    issue_list.extend(issue_list_cms)
 
 
                 output_list.append(issue_list)
@@ -397,34 +560,12 @@ if __name__ == "__main__":
         #Write all metrics to Sharepoint
         fname = "{}_jira_dump_{}.csv".format(run_date,desk_id)
 
-        with open(fname, 'wb') as csvfile:
+        with open(fname, 'w', encoding='utf-8', newline='') as csvfile:
             
-            print "Writing .csv file..."
+            print("Writing .csv file...")
+
             writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
-            writer.writerow([
-                "Ticket Key",
-                "Ticket ID",
-                "Issue Type",
-                "Time to First Response",
-                "TTFR (Minutes)",
-                "TTFR Breached",
-                "Time of First Response",
-                "Time to Resolution",
-                "TTR (Minutes)",
-                "TTR Breached",
-                "Priority",
-                "Status",
-                "Summary",
-                "Created",
-                "Reporter",
-                "Assignee",
-                "Request Type",
-                "Affected Product",
-                "Organization",
-                "Resolution",
-                "Resolved",
-                "Updated"
-            ])
+            writer.writerow(header_list)
             writer.writerows(output_list)
 
 
