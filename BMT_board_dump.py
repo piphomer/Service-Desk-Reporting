@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     run_date = dt.strftime(dt.now(), '%y%m%d')
 
-    print run_date
+    print(run_date)
 
     # Connect to BBOXX Jira server
     jira = JIRA('https://bboxxltd.atlassian.net', basic_auth=('p.homer@bboxx.co.uk', 'S0trwuh#1'))
@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
         search_string = 'project = ' + board_id
 
-        print search_string
+        print(search_string)
 
         # Retrieve all tickets so we can count them.
         # Note: we can only query 100 at a time so we will need to paginate in a later step
@@ -33,17 +33,17 @@ if __name__ == "__main__":
 
         tix_count = all_tix.total # Count the tickets via the .total attribute
 
-        page_qty = tix_count / 100 + 1 # Calculate how many pages of tickets there are
+        page_qty = tix_count // 100 + 1 # Calculate how many pages of tickets there are
 
-        print "Total number of tickets: ",tix_count
-        print "Number of pages: ", page_qty
+        print("Total number of tickets: ",tix_count)
+        print("Number of pages: ", page_qty)
 
         output_list = []
 
         # Loop through the number of pages we need to gather all issues
         for page in range(page_qty):
 
-            print "Page: ", page + 1
+            print("Page: ", page + 1)
 
             starting_issue = page * 100
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
                 this_list = [issue_key,issuetype,reporter,assignee,priority,root_cause,resolution_bf,status,created]
 
-                print this_list
+                print(this_list)
 
                 output_list.append(this_list)
             
@@ -98,7 +98,7 @@ if __name__ == "__main__":
                                 "Root Cause","Resolution (BF)","Status","Created"]
         output_df.set_index("Issue", inplace=True)
 
-        print output_df
+        print(output_df)
 
         #Write all metrics to csv file
         fname = "{}_board_dump_{}.csv".format(run_date,board_id)

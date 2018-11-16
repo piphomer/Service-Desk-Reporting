@@ -177,60 +177,69 @@ if __name__ == "__main__":
   
     #Coming soon...
 
-    #Define the header names of each column
-    header_list = [
-        "Ticket Key",
-        "Ticket ID",
-        "Issue Type",
-        "Time to First Response",
-        "TTFR (Minutes)",
-        "TTFR Breached",
-        "Time of First Response",
-        "Time to Resolution",
-        "TTR (Minutes)",
-        "TTR Breached",
-        "Priority",
-        "Status",
-        "Summary",
-        "Created",
-        "Reporter",
-        "Assignee",
-        "Request Type",
-        "Affected Product",
-        "Organization",
-        "Resolution",
-        "Resolved",
-        "Updated"
-    ]
-
-    #CMS desk gets extra columns so add these in
-    header_list.extend([
-        "Root Cause",
-        "Reason For Breach",
-        "Reason for Breach Comment",
-        "Resolution ()",
-        "Job Type",
-        "Department",
-        "Job Title",
-        "Applications",
-        "CSCC Action",
-        "Report Page",
-        "Linked Issue",
-        "TTFR Orange Breached?",
-        "TTFR Orange Elapsed Time (ms)",
-        "TTFR Orange Remaining Time (ms)",
-        "TTR Orange Breached?",
-        "TTR Orange Elapsed Time (ms)",
-        "TTR Orange Remaining Time (ms)",
-        "Weekly Status",
-        "Last Public Comment Date",
-        "ERP Module"
-        ])
-
 
     #Get the tickets
 
     for desk_id in service_desk_list:
+
+        #Define the header names of each column
+        header_list = [
+            "Ticket Key",
+            "Ticket ID",
+            "Issue Type",
+            "TTFR Complete?",
+            "TTFR Breached?",
+            "TTFR (mins)",
+            "TTFR Remaining (mins)",
+            "TTR Complete?",
+            "TTR Breached?",
+            "TTR (mins)",
+            "TTR Remaining (mins)",
+            "Priority",
+            "Status",
+            "Summary",
+            "Created",
+            "Reporter",
+            "Assignee",
+            "Request Type",
+            "Affected Product",
+            "Organization",
+            "Resolution",
+            "Resolved",
+            "Updated"
+        ]
+
+        #CMS desk gets extra columns so add these in
+        if desk_id == "CMS":
+            header_list.extend([
+                "Root Cause",
+                "Reason For Breach",
+                "Reason for Breach Comment",
+                "Resolution ()",
+                "Job Type",
+                "Department",
+                "Job Title",
+                "Applications",
+                "CSCC Action",
+                "Report Page",
+                "Linked Issue",
+                "TTFR Orange Completed?",
+                "TTFR Orange Breached?",
+                "TTFR Orange Elapsed Time (ms)",
+                "TTFR Orange Remaining Time (ms)",
+                "TTR Orange Completed?",
+                "TTR Orange Breached?",
+                "TTR Orange Elapsed Time (ms)",
+                "TTR Orange Remaining Time (ms)",
+                "Weekly Status",
+                "Last Public Comment Date",
+                "ERP Module",
+                "Sales Agent Issue",
+                "CRM Application",
+                "PAYG Issue",
+                "Payment Issue",
+
+            ])
 
         search_string = 'project = ' + desk_id
 
@@ -271,80 +280,54 @@ if __name__ == "__main__":
                 #Issue priority
                 issue_priority = issue.fields.priority.name
 
-                #time to first response
-                try:
-                    #Check if first response has occurred
-                    ttfr = issue.raw['fields']['customfield_10806']["ongoingCycle"]["remainingTime"]["friendly"]
-                    #But just return that we are awaiting it, not the time left till breach
-                    ttfr = 'Awaiting first response'
-                    ttfr_mins = ""
-                    ttfr_status = "Ongoing"
+                #TTFR
+                if issue.raw['fields']['customfield_10806'].get('ongoingCycle'): #if first response has occurred...
+                    ttfr_complete = False
+                    ttfr_breach = issue.raw['fields']['customfield_10806']['ongoingCycle']['breached']
+                    ttfr_time = issue.raw['fields']['customfield_10806']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                    ttfr_remaining = issue.raw['fields']['customfield_10806']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
+                elif issue.raw['fields']['customfield_10806'].get('completedCycles'): #if first response has not occurred
+                    ttfr_complete = True
+                    ttfr_breach = issue.raw['fields']['customfield_10806']['completedCycles'][0]['breached']
+                    ttfr_time = issue.raw['fields']['customfield_10806']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                    ttfr_remaining = issue.raw['fields']['customfield_10806']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
+                else:
+                    ttfr_complete = ""
+                    ttfr_breach = ""
                     ttfr_time = ""
-                except:
-                    # If no first response has occurred yet, then "ongoingCycle" above did not exist
-                    try:
-                        ttfr = issue.raw['fields']['customfield_10806']["completedCycles"][0]["remainingTime"]["friendly"]
-                        # cf10806 returns time left till SLA breach
-                        # So, subtract it from SLA duration (in mins) to get the actual elapsed time.
-                        if desk_id == "CMS":
-                            if issue_priority == "High":
-                                sla_mins = 240
-                            elif issue_priority == "Medium":
-                                sla_mins = 480
-                            else:
-                                sla_mins = 1440
-                        else:
-                            sla_mins = 480
-                        ttfr_mins = sla_mins - issue.raw['fields']['customfield_10806']['completedCycles'][0]['remainingTime']['millis']/1000/60
-                        ttfr_mins = str(ttfr_mins)
-                        ttfr_status = str(issue.raw['fields']['customfield_10806']["completedCycles"][0]["breached"])
-                        ttfr_time = issue.raw['fields']['customfield_10806']["completedCycles"][0]["stopTime"]["jira"]
-                    except:
-                        #Some SLAs seem to get deleted. If so return "??"
-                        ttfr = "??"
-                        ttfr_status = "??"
-                        ttfr_time = "??"
-                        ttfr_mins = "??"
-
+                    ttfr_remaining = ""
                 
-                #time to resolution
+                #TTR
                 if desk_id == "CMS" or desk_id == 'ES':
-                    if issue_priority == "High":
-                        sla_mins = 2400
-                    elif issue_priority == "Medium":
-                        sla_mins = 3600
+                    if issue.raw['fields']['customfield_10805'].get('ongoingCycle'): #if first response has occurred...
+                        ttr_complete = False
+                        ttr_breach = issue.raw['fields']['customfield_10805']['ongoingCycle']['breached']
+                        ttr_time = issue.raw['fields']['customfield_10805']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttr_remaining = issue.raw['fields']['customfield_10805']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
+                    elif issue.raw['fields']['customfield_10805'].get('completedCycles'): #if first response has not occurred
+                        ttr_complete = True
+                        ttr_breach = issue.raw['fields']['customfield_10805']['completedCycles'][-1]['breached']
+                        ttr_time = issue.raw['fields']['customfield_10805']['completedCycles'][-1]['elapsedTime']['millis'] / 1000 // 60
+                        ttr_remaining = issue.raw['fields']['customfield_10805']['completedCycles'][-1]['remainingTime']['millis'] / 1000 // 60
                     else:
-                        sla_mins = 4800
-                    try:
-                        #Let's see if there is any remaining time information by trying it (but not using it)
-                        ttr = issue.raw['fields']['customfield_10805']["ongoingCycle"]["remainingTime"]["friendly"]
-                        #If there was, just say we are awaiting resolution
-                        ttr = "Awaiting resolution" #Just overwrite the value we got through trying
-                        ttr_mins = ""
-                        ttr_status = "Ongoing"
-                    except:
-                        try:
-                            ttr = issue.raw['fields']['customfield_10805']["completedCycles"][0]["remainingTime"]["friendly"]
-                            ttr_status = str(issue.raw['fields']['customfield_10805']["completedCycles"][0]["breached"])
-                            ttr_mins = sla_mins - issue.raw['fields']['customfield_10805']['completedCycles'][0]['remainingTime']['millis']/1000/60
-                            ttr_mins = str(ttr_mins)
-                        except: #Go down this branch if there is no TTR information at all (ticket was transferred from PS, for example)
-                            ttr = "??"
-                            ttr_status = "??"
-                            ttr_mins = "??"
+                        ttr_complete = ""
+                        ttr_breach = ""
+                        ttr_time = ""
+                        ttr_remaining = ""
                 else:
                     #There is no SLA for TTR on PS desk so the custom field does not get populated with anything useful
-                    #So we will need to just look at the difference between raised date and resolved date            
-                    if issue.fields.resolutiondate != None:
-                        ttr = ""
-                        ttr_status = "n/a"
-                        ttr_mins = dt.strptime(issue.fields.resolutiondate[:16], '%Y-%m-%dT%H:%M') - dt.strptime(issue.fields.created[:16], '%Y-%m-%dT%H:%M')
-                        ttr_mins = str(ttr_mins.seconds/60)
-                    else:    
-                        ttr = ""
-                        ttr_status = ""
-                        ttr_mins = ""
+                    #So if resolution exists, get the number of days. Otherwise just fill in blanks
+                    ttr_complete = ""
+                    ttr_breach = ""
+                    ttr_remaining = ""
+                    if issue.fields.resolutiondate:
+                        ttr_time = dt.strptime(issue.fields.resolutiondate[:16], '%Y-%m-%dT%H:%M') - dt.strptime(issue.fields.created[:16], '%Y-%m-%dT%H:%M')
+                        ttr_time = ttr_time.days
+                    else:
+                        ttr_time = ""
+                    
 
+                
                 #organization
                 try:
                     org = issue.raw['fields']['customfield_10700'][0]["name"]
@@ -408,13 +391,14 @@ if __name__ == "__main__":
                     issue.key,
                     issue.id,
                     issue.fields.issuetype.name,
-                    ttfr,
-                    ttfr_mins,
-                    ttfr_status,
-                    responded,
-                    ttr,
-                    ttr_mins,
-                    ttr_status,
+                    ttfr_complete,
+                    ttfr_breach,
+                    ttfr_time,
+                    ttfr_remaining,
+                    ttr_complete,
+                    ttr_breach,
+                    ttr_time,
+                    ttr_remaining,
                     priority,
                     status,
                     issue.fields.summary,
@@ -472,9 +456,12 @@ if __name__ == "__main__":
                     except:
                         job_title = ""
 
-                    #Applications
+                    app_list = []
                     try:
-                        applications = issue.raw['fields']['customfield_11454'][0]['value']
+                        for i in range(len(issue.raw['fields']['customfield_11454'])):
+                            app_item = issue.raw['fields']['customfield_11454'][i]['value']
+                            app_list.append(app_item)
+                        applications = ", ".join(app_list)
                     except:
                         applications = ""
 
@@ -499,32 +486,38 @@ if __name__ == "__main__":
                     
                     #TTFR Orange
                     if issue.raw['fields']['customfield_11484'].get('ongoingCycle'):
+                        ttfr_orange_completed = False
                         ttfr_orange_breach = issue.raw['fields']['customfield_11484']['ongoingCycle']['breached']
-                        ttfr_orange_time = issue.raw['fields']['customfield_11484']['ongoingCycle']['elapsedTime']['millis']
-                        ttfr_orange_remaining = issue.raw['fields']['customfield_11484']['ongoingCycle']['remainingTime']['millis']
+                        ttfr_orange_time = issue.raw['fields']['customfield_11484']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttfr_orange_remaining = issue.raw['fields']['customfield_11484']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
                     elif issue.raw['fields']['customfield_11484'].get('completedCycles'):
+                        ttfr_orange_completed = True
                         ttfr_orange_breach = issue.raw['fields']['customfield_11484']['completedCycles'][0]['breached']
-                        ttfr_orange_time = issue.raw['fields']['customfield_11484']['completedCycles'][0]['elapsedTime']['millis']
-                        ttfr_orange_remaining = issue.raw['fields']['customfield_11484']['completedCycles'][0]['remainingTime']['millis']
+                        ttfr_orange_time = issue.raw['fields']['customfield_11484']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                        ttfr_orange_remaining = issue.raw['fields']['customfield_11484']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
                     else:
-                        ttfr_orange_breach = ''
-                        ttfr_orange_time = ''
-                        ttfr_orange_remaining = ''
+                        ttfr_orange_completed = ""
+                        ttfr_orange_breach = ""
+                        ttfr_orange_time = ""
+                        ttfr_orange_remaining = ""
                     
 
                     #TTR Orange
                     if issue.raw['fields']['customfield_11485'].get('ongoingCycle'):
+                        ttr_orange_completed = False
                         ttr_orange_breach = issue.raw['fields']['customfield_11485']['ongoingCycle']['breached']
-                        ttr_orange_time = issue.raw['fields']['customfield_11485']['ongoingCycle']['elapsedTime']['millis']
-                        ttr_orange_remaining = issue.raw['fields']['customfield_11485']['ongoingCycle']['remainingTime']['millis']
+                        ttr_orange_time = issue.raw['fields']['customfield_11485']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttr_orange_remaining = issue.raw['fields']['customfield_11485']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
                     elif issue.raw['fields']['customfield_11485'].get('completedCycles'):
+                        ttr_orange_completed = True
                         ttr_orange_breach = issue.raw['fields']['customfield_11485']['completedCycles'][0]['breached']
-                        ttr_orange_time = issue.raw['fields']['customfield_11485']['completedCycles'][0]['elapsedTime']['millis']
-                        ttr_orange_remaining = issue.raw['fields']['customfield_11485']['completedCycles'][0]['remainingTime']['millis']
+                        ttr_orange_time = issue.raw['fields']['customfield_11485']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                        ttr_orange_remaining = issue.raw['fields']['customfield_11485']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
                     else:
-                        ttr_orange_breach = ''
-                        ttr_orange_time = ''
-                        ttr_orange_remaining = ''
+                        ttr_orange_completed = ""
+                        ttr_orange_breach = ""
+                        ttr_orange_time = ""
+                        ttr_orange_remaining = ""
 
 
                     #Weekly Status
@@ -544,12 +537,39 @@ if __name__ == "__main__":
                         erp_module = issue.raw['fields']['customfield_11302']['value']
                     except:
                         erp_module = ""
+
+                    #Sales Agent Issue
+                    try:
+                        sales_agent_issue = issue.raw['fields']['customfield_11402']['value']
+                    except:
+                        sales_agent_issue = ""
+
+                        #CRM Application
+                    try:
+                        crm_application = issue.raw['fields']['customfield_11441']['value']
+                    except:
+                        crm_application = ""
+
+
+                    #PAYG Issue
+                    try:
+                        payg_issue = issue.raw['fields']['customfield_11438']['value']
+                    except:
+                        payg_issue = ""
+
+                    #Payment Issue
+                    try:
+                        payment_issue = issue.raw['fields']['customfield_11437']['value']
+                    except:
+                        payment_issue = ""
+
                     
                     issue_list_cms = [root_cause, reason_for_breach, reason_for_breach_comment, resolution_brackets,
                                     job_type, department, job_title, applications, cscc_action, report_page, linked_issue,
-                                    ttfr_orange_breach, ttfr_orange_time, ttfr_orange_remaining,
-                                    ttr_orange_breach, ttr_orange_time, ttr_orange_remaining,
-                                    weekly_status, last_public_comment_date, erp_module]
+                                    ttfr_orange_completed,ttfr_orange_breach, ttfr_orange_time, ttfr_orange_remaining,
+                                    ttr_orange_completed, ttr_orange_breach, ttr_orange_time, ttr_orange_remaining,
+                                    weekly_status, last_public_comment_date, erp_module, sales_agent_issue,
+                                    crm_application, payg_issue, payment_issue]
 
                     issue_list.extend(issue_list_cms)
 
