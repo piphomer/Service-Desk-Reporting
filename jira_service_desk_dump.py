@@ -1,3 +1,5 @@
+#Python 3
+
 from jira import JIRA
 import csv
 import sys
@@ -15,8 +17,8 @@ from unidecode import unidecode
 # from office365.runtime.utilities.request_options import RequestOptions
 
 #List of service desks to iterate through
-service_desk_list = ['CMS','PS', 'ES']
-service_desk_list = ['CMS']
+service_desk_list = ['CMS','PS']
+#service_desk_list = ['PS']
 
 #Auth
 jira_username = os.environ['JIRA_USERNAME']
@@ -428,7 +430,7 @@ if __name__ == "__main__":
 
                     #Reason for breach comment
                     try:
-                        reason_for_breach_comment = issue.raw['fields']['customfield_11488'][0]['value']
+                        reason_for_breach_comment = issue.raw['fields']['customfield_11448']
                     except:
                         reason_for_breach_comment = ""
 
