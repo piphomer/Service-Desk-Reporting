@@ -1,0 +1,5 @@
+*.pptx
+*.xlsm
+*.xlsx
+/pbix2
+/outputs

@@ -17,8 +17,8 @@ from unidecode import unidecode
 # from office365.runtime.utilities.request_options import RequestOptions
 
 #List of service desks to iterate through
-service_desk_list = ['CMS','PS']
-#service_desk_list = ['PS']
+service_desk_list = ['PS','CMS']
+# service_desk_list = ['CMS']
 
 #Auth
 jira_username = os.environ['JIRA_USERNAME']
@@ -36,84 +36,84 @@ sharepoint_url = 'https://bboxxeng.sharepoint.com'
 # Set up Sharepoint functions
 ####################################################################################################
 
-# class Sharepoint():
+class Sharepoint():
 
-#     """ Sharepoint Connection """
-#     def __init__(self, sharepoint_username, sharepoint_password, sharepoint_url):
-#         self.sharepoint_username = sharepoint_username
-#         self.sharepoint_password = sharepoint_password
-#         self.sharepoint_url = sharepoint_url
+    """ Sharepoint Connection """
+    def __init__(self, sharepoint_username, sharepoint_password, sharepoint_url):
+        self.sharepoint_username = sharepoint_username
+        self.sharepoint_password = sharepoint_password
+        self.sharepoint_url = sharepoint_url
 
-#     def authorise_sharepoint(self, url=None):
-#         if not url:
-#             raise Exception("Error","No Sharepoint URL is defined in config.")
-#         ctx_auth = AuthenticationContext(url=url)
-#         self.sp_url = url
-#         if ctx_auth.acquire_token_for_user(username=self.sharepoint_username,
-#                                            password=self.sharepoint_password):
-#             ctx = ClientContext(url, ctx_auth)
-#             return ctx
-#         else:
-#             print("error in auth")
-#         return False
+    def authorise_sharepoint(self, url=None):
+        if not url:
+            raise Exception("Error","No Sharepoint URL is defined in config.")
+        ctx_auth = AuthenticationContext(url=url)
+        self.sp_url = url
+        if ctx_auth.acquire_token_for_user(username=self.sharepoint_username,
+                                           password=self.sharepoint_password):
+            ctx = ClientContext(url, ctx_auth)
+            return ctx
+        else:
+            print("error in auth")
+        return False
 
-#     def get_folder_by_server_relative_url(self,path):
-#         if path[0] == '/':
-#             path = path[1:]
-#         if path[-1] == '/':
-#             path = path[:-1]
-#         folder_paths = path.split('/')
-#         url = self.sp_url
-#         if not url:
-#             raise Exception("Error","No Sharepoint URL is defined in config.")
-#         if url[-1] != '/':
-#             url += '/'
-#         url = url + folder_paths[0] + '/' + folder_paths[1]
-#         self.ctx = self.authorise_sharepoint(url)
-#         folder_names = path.split('/')
-#         list_obj = self.ctx.web.lists.get_by_title(folder_paths[2])
-#         folder = list_obj.root_folder
-#         if len(folder_names[2:]) > 1:
-#              for folder_name in folder_names[3:]:
-#                 # Get destination sharepoint folder
-#                 folder = folder.folders.get_by_url(folder_name)
-#         return folder
+    def get_folder_by_server_relative_url(self,path):
+        if path[0] == '/':
+            path = path[1:]
+        if path[-1] == '/':
+            path = path[:-1]
+        folder_paths = path.split('/')
+        url = self.sp_url
+        if not url:
+            raise Exception("Error","No Sharepoint URL is defined in config.")
+        if url[-1] != '/':
+            url += '/'
+        url = url + folder_paths[0] + '/' + folder_paths[1]
+        self.ctx = self.authorise_sharepoint(url)
+        folder_names = path.split('/')
+        list_obj = self.ctx.web.lists.get_by_title(folder_paths[2])
+        folder = list_obj.root_folder
+        if len(folder_names[2:]) > 1:
+             for folder_name in folder_names[3:]:
+                # Get destination sharepoint folder
+                folder = folder.folders.get_by_url(folder_name)
+        return folder
 
-#     def upload_file(self,path,file_content,file_name,overwrite = True):
-#         # Find Folder
+    def upload_file(self,path,file_content,file_name,overwrite = True):
+        # Find Folder
 
-#         folder_object = self.get_folder_by_server_relative_url(path)
+        folder_object = self.get_folder_by_server_relative_url(path)
 
-#         self.ctx.load(folder_object)
-#         self.ctx.execute_query()
+        self.ctx.load(folder_object)
+        self.ctx.execute_query()
 
-#         # Create File Object
-#         info = FileCreationInformation()
-#         info.url = file_name
-#         info.content = file_content
-#         info.overwrite = overwrite
+        # Create File Object
+        info = FileCreationInformation()
+        info.url = file_name
+        info.content = file_content
+        info.overwrite = overwrite
 
-#         full_url = "{0}/Files/add(url='{1}', overwrite=true)".format(folder_object.url, file_name)
+        full_url = "{0}/Files/add(url='{1}', overwrite=true)".format(folder_object.url, file_name)
 
 
-#         options = RequestOptions(full_url)
-#         self.ctx.authenticate_request(options)
-#         self.ctx.ensure_form_digest(options)
+        options = RequestOptions(full_url)
+        self.ctx.authenticate_request(options)
+        self.ctx.ensure_form_digest(options)
 
-#         # Upload File
+        # Upload File
 
-#         # The reason we do this directly is because the
-#         # `request.execute_query_direct` call wants to send JSON, but that
-#         # doesn't work if you want to upload, eg, an XLSX file (Requests
-#         # just falls over trying to decode the contents as text).
-#         print(('Uploading File "%s" to sharepoint folder "%s" ...' % (info.url, folder_object)))
-#         print(full_url)
-#         response = requests.post(
-#             url=full_url, data=file_content, headers=options.headers, auth=options.auth,
-#         )
-#         if response.status_code not in [200,201]:
-#             raise Exception(response.text, response.status_code)
-#         print('Done.')
+        # The reason we do this directly is because the
+        # `request.execute_query_direct` call wants to send JSON, but that
+        # doesn't work if you want to upload, eg, an XLSX file (Requests
+        # just falls over trying to decode the contents as text).
+        print(('Uploading File "%s" to sharepoint folder "%s" ...' % (info.url, folder_object)))
+        print(full_url)
+        response = requests.post(
+            url=full_url, data=file_content, headers=options.headers, auth=options.auth,
+        )
+        if response.status_code not in [200,201]:
+            raise Exception(response.text, response.status_code)
+        print('Done.')
 
 
 
@@ -151,10 +151,10 @@ sharepoint_url = 'https://bboxxeng.sharepoint.com'
 #         return
 
 
-# def read_file_as_binary(path):
-#     with open(path, 'rb') as content_file:
-#         file_content = content_file.read()
-#     return file_content
+def read_file_as_binary(path):
+    with open(path, 'rb') as content_file:
+        file_content = content_file.read()
+    return file_content
 
 
 ####################################################################################################
@@ -221,7 +221,16 @@ if __name__ == "__main__":
                 "Job Type",
                 "Department",
                 "Job Title",
-                "Applications",
+                "Application 1",
+                "Application 2",
+                "Application 3",
+                "Application 4",
+                "Application 5",
+                "Application 6",
+                "Application 7",
+                "Application 8",
+                "Application 9",
+                "Application 10",
                 "CSCC Action",
                 "Report Page",
                 "Linked Issue",
@@ -233,6 +242,22 @@ if __name__ == "__main__":
                 "TTR Orange Breached?",
                 "TTR Orange Elapsed Time (ms)",
                 "TTR Orange Remaining Time (ms)",
+                "TTFR Premium Completed?",
+                "TTFR Premium Breached?",
+                "TTFR Premium Elapsed Time (ms)",
+                "TTFR Premium Remaining Time (ms)",
+                "TTR Premium Completed?",
+                "TTR Premium Breached?",
+                "TTR Premium Elapsed Time (ms)",
+                "TTR Premium Remaining Time (ms)",
+                "TTFR Premium Plus Completed?",
+                "TTFR Premium Plus Breached?",
+                "TTFR Premium Plus Elapsed Time (ms)",
+                "TTFR Premium Plus Remaining Time (ms)",
+                "TTR Premium Plus Completed?",
+                "TTR Premium Plus Breached?",
+                "TTR Premium Plus Elapsed Time (ms)",
+                "TTR Premium Plus Remaining Time (ms)",
                 "Weekly Status",
                 "Last Public Comment Date",
                 "ERP Module",
@@ -277,10 +302,13 @@ if __name__ == "__main__":
 
             for issue in tix:
 
-                #print(issue.key)
+                # print(issue.key)
 
                 #Issue priority
-                issue_priority = issue.fields.priority.name
+                try:
+                    issue_priority = issue.fields.priority.name
+                except:
+                    issue_priority = None
 
                 #TTFR
                 if issue.raw['fields']['customfield_10806'].get('ongoingCycle'): #if first response has occurred...
@@ -458,14 +486,22 @@ if __name__ == "__main__":
                     except:
                         job_title = ""
 
+                    # app_list = []
+                    # try:
+                    #     for i in range(len(issue.raw['fields']['customfield_11454'])):
+                    #         app_item = issue.raw['fields']['customfield_11454'][i]['value']
+                    #         app_list.append(app_item)
+                    #     applications = ", ".join(app_list)
+                    # except:
+                    #     applications = ""
+
                     app_list = []
-                    try:
-                        for i in range(len(issue.raw['fields']['customfield_11454'])):
-                            app_item = issue.raw['fields']['customfield_11454'][i]['value']
-                            app_list.append(app_item)
-                        applications = ", ".join(app_list)
-                    except:
-                        applications = ""
+
+                    for i in range(10):
+                        try:
+                            app_list.append(issue.raw["fields"]["customfield_11454"][i]['value'])
+                        except:
+                            app_list.append("-")
 
                     #CSCC Action
                     try:
@@ -521,6 +557,76 @@ if __name__ == "__main__":
                         ttr_orange_time = ""
                         ttr_orange_remaining = ""
 
+                    #TTFR Premium
+                    if issue.raw['fields']['customfield_11504'].get('ongoingCycle'):
+                        ttfr_premium_completed = False
+                        ttfr_premium_breach = issue.raw['fields']['customfield_11504']['ongoingCycle']['breached']
+                        ttfr_premium_time = issue.raw['fields']['customfield_11504']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttfr_premium_remaining = issue.raw['fields']['customfield_11504']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
+                    elif issue.raw['fields']['customfield_11504'].get('completedCycles'):
+                        ttfr_premium_completed = True
+                        ttfr_premium_breach = issue.raw['fields']['customfield_11504']['completedCycles'][0]['breached']
+                        ttfr_premium_time = issue.raw['fields']['customfield_11504']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                        ttfr_premium_remaining = issue.raw['fields']['customfield_11504']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
+                    else:
+                        ttfr_premium_completed = ""
+                        ttfr_premium_breach = ""
+                        ttfr_premium_time = ""
+                        ttfr_premium_remaining = ""
+                    
+
+                    #TTR Premium
+                    if issue.raw['fields']['customfield_11505'].get('ongoingCycle'):
+                        ttr_premium_completed = False
+                        ttr_premium_breach = issue.raw['fields']['customfield_11505']['ongoingCycle']['breached']
+                        ttr_premium_time = issue.raw['fields']['customfield_11505']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttr_premium_remaining = issue.raw['fields']['customfield_11505']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
+                    elif issue.raw['fields']['customfield_11505'].get('completedCycles'):
+                        ttr_premium_completed = True
+                        ttr_premium_breach = issue.raw['fields']['customfield_11505']['completedCycles'][0]['breached']
+                        ttr_premium_time = issue.raw['fields']['customfield_11505']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                        ttr_premium_remaining = issue.raw['fields']['customfield_11505']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
+                    else:
+                        ttr_premium_completed = ""
+                        ttr_premium_breach = ""
+                        ttr_premium_time = ""
+                        ttr_premium_remaining = ""
+
+
+                    #TTFR Premium Plus
+                    if issue.raw['fields']['customfield_11510'].get('ongoingCycle'):
+                        ttfr_premium_plus_completed = False
+                        ttfr_premium_plus_breach = issue.raw['fields']['customfield_11510']['ongoingCycle']['breached']
+                        ttfr_premium_plus_time = issue.raw['fields']['customfield_11510']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttfr_premium_plus_remaining = issue.raw['fields']['customfield_11510']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
+                    elif issue.raw['fields']['customfield_11510'].get('completedCycles'):
+                        ttfr_premium_plus_completed = True
+                        ttfr_premium_plus_breach = issue.raw['fields']['customfield_11510']['completedCycles'][0]['breached']
+                        ttfr_premium_plus_time = issue.raw['fields']['customfield_11510']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                        ttfr_premium_plus_remaining = issue.raw['fields']['customfield_11510']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
+                    else:
+                        ttfr_premium_plus_completed = ""
+                        ttfr_premium_plus_breach = ""
+                        ttfr_premium_plus_time = ""
+                        ttfr_premium_plus_remaining = ""
+                    
+
+                    #TTR Premium Plus
+                    if issue.raw['fields']['customfield_11511'].get('ongoingCycle'):
+                        ttr_premium_plus_completed = False
+                        ttr_premium_plus_breach = issue.raw['fields']['customfield_11511']['ongoingCycle']['breached']
+                        ttr_premium_plus_time = issue.raw['fields']['customfield_11511']['ongoingCycle']['elapsedTime']['millis'] / 1000 // 60
+                        ttr_premium_plus_remaining = issue.raw['fields']['customfield_11511']['ongoingCycle']['remainingTime']['millis'] / 1000 // 60
+                    elif issue.raw['fields']['customfield_11511'].get('completedCycles'):
+                        ttr_premium_plus_completed = True
+                        ttr_premium_plus_breach = issue.raw['fields']['customfield_11511']['completedCycles'][0]['breached']
+                        ttr_premium_plus_time = issue.raw['fields']['customfield_11511']['completedCycles'][0]['elapsedTime']['millis'] / 1000 // 60
+                        ttr_premium_plus_remaining = issue.raw['fields']['customfield_11511']['completedCycles'][0]['remainingTime']['millis'] / 1000 // 60
+                    else:
+                        ttr_premium_plus_completed = ""
+                        ttr_premium_plus_breach = ""
+                        ttr_premium_plus_time = ""
+                        ttr_premium_plus_remaining = ""
 
                     #Weekly Status
                     try:
@@ -567,9 +673,15 @@ if __name__ == "__main__":
 
                     
                     issue_list_cms = [root_cause, reason_for_breach, reason_for_breach_comment, resolution_brackets,
-                                    job_type, department, job_title, applications, cscc_action, report_page, linked_issue,
-                                    ttfr_orange_completed,ttfr_orange_breach, ttfr_orange_time, ttfr_orange_remaining,
-                                    ttr_orange_completed, ttr_orange_breach, ttr_orange_time, ttr_orange_remaining,
+                                    job_type, department, job_title, app_list[0],app_list[1],app_list[2],app_list[3],
+                                    app_list[4],app_list[5],app_list[6],app_list[7],app_list[9],app_list[9],
+                                    cscc_action, report_page, linked_issue,
+                                    ttfr_orange_completed,ttfr_orange_breach,ttfr_orange_time, ttfr_orange_remaining,
+                                    ttr_orange_completed, ttr_orange_breach, ttr_orange_time,ttr_orange_remaining,
+                                    ttfr_premium_completed,ttfr_premium_breach, ttfr_premium_time,ttfr_premium_remaining,
+                                    ttr_premium_completed, ttr_premium_breach, ttr_premium_time,ttr_premium_remaining,
+                                    ttfr_premium_plus_completed, ttfr_premium_plus_breach, ttfr_premium_plus_time,ttfr_premium_plus_remaining,
+                                    ttr_premium_plus_completed, ttr_premium_plus_breach, ttr_premium_plus_time,ttr_premium_plus_remaining,
                                     weekly_status, last_public_comment_date, erp_module, sales_agent_issue,
                                     crm_application, payg_issue, payment_issue]
 
@@ -580,7 +692,7 @@ if __name__ == "__main__":
 
 
         #Write all metrics to Sharepoint
-        fname = "{}_jira_dump_{}.csv".format(run_date,desk_id)
+        fname = "../outputs/{}_jira_dump_{}.csv".format(run_date,desk_id)
 
         with open(fname, 'w', encoding='utf-8', newline='') as csvfile:
             
@@ -591,10 +703,14 @@ if __name__ == "__main__":
             writer.writerows(output_list)
 
 
-            #Write to Sharepoint
+        #Write to Sharepoint
             
-            # file_content = read_file_as_binary(fname)
+        # file_content = read_file_as_binary(fname)
 
-            # sp_path = 'teams/Engineering/Reporting/Service%20Desk%20Reporting/'
+        # sp_path = 'teams/Engineering/Reporting/Service%20Desk%20Reporting/'
 
-            # sp.upload_file(file_content=file_content, file_name=fname, path=sp_path)
+        # sp = Sharepoint(sharepoint_username,sharepoint_password, sharepoint_url)
+
+        # sp.authorise_sharepoint(sharepoint_url)
+
+        # sp.upload_file(file_content=file_content, file_name=fname, path=sp_path)

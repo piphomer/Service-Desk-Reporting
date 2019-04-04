@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
         search_string = 'project = ' + board_id
 
-        print(search_string)
+        # print(search_string)
 
         # Retrieve all tickets so we can count them.
         # Note: we can only query 100 at a time so we will need to paginate in a later step
@@ -55,45 +55,45 @@ if __name__ == "__main__":
             
             for issue in tix:
 
-                issue_key = issue.key#.encode('utf-8')
+                issue_key = issue.key
                 
                 try:
-                    issuetype = issue.fields.issuetype.name#.encode('utf-8')
+                    issuetype = issue.fields.issuetype.name
                 except:
                     issuetype = "-"
                 
                 try:
-                    reporter = issue.fields.reporter.displayName#.encode('utf-8')
+                    reporter = issue.fields.reporter.displayName
                 except:
                     reporter = "-"
                 
                 try:
-                    priority = issue.fields.priority.name#.encode('utf-8')
+                    priority = issue.fields.priority.name
                 except:
                     priority = "-"
                 
                 try:
-                    root_cause = issue.fields.customfield_11446[0].value#.encode('utf-8')
+                    root_cause = issue.fields.customfield_11446[0].value
                 except:
                     root_cause = "-"
                 
                 try:
-                    resolution_bf = issue.fields.customfield_11447.value#.encode('utf-8')
+                    resolution_bf = issue.fields.customfield_11447.value
                 except:
                     resolution_bf = "-"
                 
                 try:
-                    status = issue.fields.status.name#.encode('utf-8')
+                    status = issue.fields.status.name
                 except:
                     status = "-"
                 
                 try:
-                    created = issue.fields.created#.encode('utf-8')
+                    created = issue.fields.created
                 except:
                     created = "-"
 
                 try:
-                    assignee = issue.fields.assignee.displayName#.encode('utf-8')
+                    assignee = issue.fields.assignee.displayName
                 except:
                     assignee = "-"
 
@@ -109,20 +109,22 @@ if __name__ == "__main__":
                     development = "True"
                 else: development = "False"
 
-                this_list = [issue_key,issuetype,reporter,assignee,priority,root_cause,resolution_bf,status,
-                                        created,labels_list[0],labels_list[1],labels_list[2],labels_list[3],labels_list[4],development]
+                summary = issue.fields.summary
 
-                print(this_list)
+                this_list = [issue_key,issuetype,reporter,assignee,priority,root_cause,resolution_bf,status,created,
+                                labels_list[0],labels_list[1],labels_list[2],labels_list[3],labels_list[4],development,summary]
+
+                # print(this_list)
 
                 output_list.append(this_list)
             
 
         header_list = ["Issue","Issue Type","Reporter","Assignee","Priority","Root Cause","Resolution (BF)",
-                                        "Status","Created","Label 1","Label 2","Label 3","Label 4","Label 5", "Development"]
+                                        "Status","Created","Label 1","Label 2","Label 3","Label 4","Label 5","Development","Summary"]
         
 
         #Write all metrics to csv file
-        fname = "{}_board_dump_{}.csv".format(run_date,board_id)
+        fname = "../outputs/{}_board_dump_{}.csv".format(run_date,board_id)
 
         with open(fname, 'w', encoding='utf-8', newline='') as csvfile:
             
@@ -132,6 +134,3 @@ if __name__ == "__main__":
             writer.writerow(header_list)
             writer.writerows(output_list)
 
-
-
-        # output_df.to_csv(fname)
