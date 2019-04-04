@@ -1,5 +1,3 @@
-#Python 3
-
 from jira import JIRA
 import csv
 import sys
@@ -37,8 +35,6 @@ if __name__ == "__main__":
 
         page_qty = tix_count // 100 + 1 # Calculate how many pages of tickets there are
 
-        # page_qty = 1
-
         print("Total number of tickets: ",tix_count)
         print("Number of pages: ", page_qty)
 
@@ -55,44 +51,69 @@ if __name__ == "__main__":
             
             for issue in tix:
 
+<<<<<<< HEAD:app/BMT_board_dump.py
                 issue_key = issue.key
                 
                 try:
                     issuetype = issue.fields.issuetype.name
+=======
+                issue_key = issue.key.encode('utf-8')
+                try:
+                    issuetype = issue.fields.issuetype.name.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     issuetype = "-"
-                
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     reporter = issue.fields.reporter.displayName
+=======
+                    reporter = issue.fields.reporter.displayName.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     reporter = "-"
-                
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     priority = issue.fields.priority.name
+=======
+                    priority = issue.fields.priority.name.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     priority = "-"
-                
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     root_cause = issue.fields.customfield_11446[0].value
+=======
+                    root_cause = issue.fields.customfield_11446[0].value.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     root_cause = "-"
-                
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     resolution_bf = issue.fields.customfield_11447.value
+=======
+                    resolution_bf = issue.fields.customfield_11447.value.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     resolution_bf = "-"
-                
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     status = issue.fields.status.name
+=======
+                    status = issue.fields.status.name.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     status = "-"
-                
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     created = issue.fields.created
+=======
+                    created = issue.fields.created.encode('utf-8')
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
                 except:
                     created = "-"
 
                 try:
+<<<<<<< HEAD:app/BMT_board_dump.py
                     assignee = issue.fields.assignee.displayName
                 except:
                     assignee = "-"
@@ -110,6 +131,13 @@ if __name__ == "__main__":
                 else: development = "False"
 
                 summary = issue.fields.summary
+=======
+                    assignee = issue.fields.assignee.displayName.encode('utf-8')
+                except:
+                    assignee = "-"
+
+                this_list = [issue_key,issuetype,reporter,assignee,priority,root_cause,resolution_bf,status,created]
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
 
                 this_list = [issue_key,issuetype,reporter,assignee,priority,root_cause,resolution_bf,status,created,
                                 labels_list[0],labels_list[1],labels_list[2],labels_list[3],labels_list[4],development,summary]
@@ -119,13 +147,23 @@ if __name__ == "__main__":
                 output_list.append(this_list)
             
 
+<<<<<<< HEAD:app/BMT_board_dump.py
         header_list = ["Issue","Issue Type","Reporter","Assignee","Priority","Root Cause","Resolution (BF)",
                                         "Status","Created","Label 1","Label 2","Label 3","Label 4","Label 5","Development","Summary"]
         
+=======
+        output_df = pd.DataFrame(output_list)
+        output_df.columns = ["Issue","Issue Type","Reporter","Assignee","Priority",
+                                "Root Cause","Resolution (BF)","Status","Created"]
+        output_df.set_index("Issue", inplace=True)
+
+        print(output_df)
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
 
         #Write all metrics to csv file
         fname = "../outputs/{}_board_dump_{}.csv".format(run_date,board_id)
 
+<<<<<<< HEAD:app/BMT_board_dump.py
         with open(fname, 'w', encoding='utf-8', newline='') as csvfile:
             
             print("Writing .csv file...")
@@ -134,3 +172,6 @@ if __name__ == "__main__":
             writer.writerow(header_list)
             writer.writerows(output_list)
 
+=======
+        output_df.to_csv(fname)
+>>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:BMT_board_dump.py
