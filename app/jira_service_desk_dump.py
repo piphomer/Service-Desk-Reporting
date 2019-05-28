@@ -1,3 +1,5 @@
+#Python 3
+
 from jira import JIRA
 import csv
 import sys
@@ -7,151 +9,12 @@ from datetime import datetime as dt
 import unicodedata
 from unidecode import unidecode
 
-
-
-# from office365.runtime.auth.authentication_context import AuthenticationContext
-# from office365.sharepoint.client_context import ClientContext
-# from office365.sharepoint.file_creation_information import FileCreationInformation
-# from office365.runtime.utilities.request_options import RequestOptions
-
 #List of service desks to iterate through
-<<<<<<< HEAD:app/jira_service_desk_dump.py
 service_desk_list = ['PS','CMS']
-# service_desk_list = ['CMS']
-=======
-service_desk_list = ['CMS','PS', 'ES']
-service_desk_list = ['CMS']
->>>>>>> parent of 8f64e57... Added Label 1 - 5 fields for BMT dump:jira_service_desk_dump.py
 
 #Auth
 jira_username = os.environ['JIRA_USERNAME']
-jira_password = os.environ['JIRA_PASSWORD']
-
-sharepoint_username = os.environ['SHAREPOINT_USERNAME']
-sharepoint_password = os.environ['SHAREPOINT_PASSWORD']
-# sharepoint_url = os.environ['SHAREPOINT_URL']
-
-sharepoint_url = 'https://bboxxeng.sharepoint.com'
-
-
-
-####################################################################################################
-# Set up Sharepoint functions
-####################################################################################################
-
-class Sharepoint():
-
-    """ Sharepoint Connection """
-    def __init__(self, sharepoint_username, sharepoint_password, sharepoint_url):
-        self.sharepoint_username = sharepoint_username
-        self.sharepoint_password = sharepoint_password
-        self.sharepoint_url = sharepoint_url
-
-    def authorise_sharepoint(self, url=None):
-        if not url:
-            raise Exception("Error","No Sharepoint URL is defined in config.")
-        ctx_auth = AuthenticationContext(url=url)
-        self.sp_url = url
-        if ctx_auth.acquire_token_for_user(username=self.sharepoint_username,
-                                           password=self.sharepoint_password):
-            ctx = ClientContext(url, ctx_auth)
-            return ctx
-        else:
-            print("error in auth")
-        return False
-
-    def get_folder_by_server_relative_url(self,path):
-        if path[0] == '/':
-            path = path[1:]
-        if path[-1] == '/':
-            path = path[:-1]
-        folder_paths = path.split('/')
-        url = self.sp_url
-        if not url:
-            raise Exception("Error","No Sharepoint URL is defined in config.")
-        if url[-1] != '/':
-            url += '/'
-        url = url + folder_paths[0] + '/' + folder_paths[1]
-        self.ctx = self.authorise_sharepoint(url)
-        folder_names = path.split('/')
-        list_obj = self.ctx.web.lists.get_by_title(folder_paths[2])
-        folder = list_obj.root_folder
-        if len(folder_names[2:]) > 1:
-             for folder_name in folder_names[3:]:
-                # Get destination sharepoint folder
-                folder = folder.folders.get_by_url(folder_name)
-        return folder
-
-    def upload_file(self,path,file_content,file_name,overwrite = True):
-        # Find Folder
-
-        folder_object = self.get_folder_by_server_relative_url(path)
-
-        self.ctx.load(folder_object)
-        self.ctx.execute_query()
-
-        # Create File Object
-        info = FileCreationInformation()
-        info.url = file_name
-        info.content = file_content
-        info.overwrite = overwrite
-
-        full_url = "{0}/Files/add(url='{1}', overwrite=true)".format(folder_object.url, file_name)
-
-
-        options = RequestOptions(full_url)
-        self.ctx.authenticate_request(options)
-        self.ctx.ensure_form_digest(options)
-
-        # Upload File
-
-        # The reason we do this directly is because the
-        # `request.execute_query_direct` call wants to send JSON, but that
-        # doesn't work if you want to upload, eg, an XLSX file (Requests
-        # just falls over trying to decode the contents as text).
-        print(('Uploading File "%s" to sharepoint folder "%s" ...' % (info.url, folder_object)))
-        print(full_url)
-        response = requests.post(
-            url=full_url, data=file_content, headers=options.headers, auth=options.auth,
-        )
-        if response.status_code not in [200,201]:
-            raise Exception(response.text, response.status_code)
-        print('Done.')
-
-
-
-#     def delete_file(self, path):
-#         print("Deleting file")
-#         split_path = path.rsplit('/', 1)
-#         folder_path, filename = split_path[0], split_path[1]
-#         folder = self.get_folder_by_server_relative_url(folder_path)
-#         self.ctx.load(folder)
-#         self.ctx.execute_query()
-
-#         files = folder.files
-#         self.ctx.load(files)
-#         self.ctx.execute_query()
-
-#         print(files)
-
-#         for cur_file in files:
-#             print(cur_file.properties["Name"])
-#             if cur_file.properties["Name"] == filename:
-#                 full_url = "{0}/$value".format(cur_file.url)
-#                 options = RequestOptions(full_url)
-#                 self.ctx.authenticate_request(options)
-#                 self.ctx.ensure_form_digest(options)
-#                 response = requests.delete(url=cur_file.url, headers=options.headers, auth=options.auth)
-
-#                 print(response.status_code)
-
-#                 if response.status_code == 404:
-#                     raise SharepointFileNotFound()
-
-#                 elif response.status_code != 200:
-#                     raise SharepointDeleteFailed()
-
-#         return
+jira_api_token = 'LBTfuc89zOImffuH61Hm3FB3'
 
 
 def read_file_as_binary(path):
@@ -170,18 +33,7 @@ if __name__ == "__main__":
     print(run_date)
 
     # Connect to BBOXX Jira server
-    jira = JIRA('https://bboxxltd.atlassian.net', basic_auth=(jira_username, jira_password))
-
-    #Create connection to Sharepoint
-
-    # sp = Sharepoint(sharepoint_username,sharepoint_password, sharepoint_url)
-
-    # sp.authorise_sharepoint(sharepoint_url)
-    
-    #Move any files in the Active folder to the Archive folder
-  
-    #Coming soon...
-
+    jira = JIRA('https://bboxxltd.atlassian.net', basic_auth=(jira_username, jira_api_token))
 
     #Get the tickets
 
@@ -704,16 +556,3 @@ if __name__ == "__main__":
             writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
             writer.writerow(header_list)
             writer.writerows(output_list)
-
-
-        #Write to Sharepoint
-            
-        # file_content = read_file_as_binary(fname)
-
-        # sp_path = 'teams/Engineering/Reporting/Service%20Desk%20Reporting/'
-
-        # sp = Sharepoint(sharepoint_username,sharepoint_password, sharepoint_url)
-
-        # sp.authorise_sharepoint(sharepoint_url)
-
-        # sp.upload_file(file_content=file_content, file_name=fname, path=sp_path)
